@@ -86,7 +86,7 @@ export default function Courses() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground line-clamp-3">{course.description || "No description"}</p>
-                  <p className="text-xs text-muted-foreground">By {course.profiles?.full_name || "Unknown"}</p>
+                  <p className="text-xs text-muted-foreground">Course</p>
                   {!isInstructor && (
                     enrollments.includes(course.id) ? (
                       <Badge variant="secondary">Enrolled</Badge>
