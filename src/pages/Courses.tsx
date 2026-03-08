@@ -6,13 +6,15 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, BookOpen } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Plus, BookOpen, User, Layers } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Courses() {
   const { user, roles } = useAuth();
   const [courses, setCourses] = useState<any[]>([]);
-  const [enrollments, setEnrollments] = useState<string[]>([]);
+  const [enrollments, setEnrollments] = useState<Record<string, any>>({});
+  const [instructors, setInstructors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const isInstructor = roles.includes("instructor") || roles.includes("admin");
@@ -21,9 +23,21 @@ export default function Courses() {
     const load = async () => {
       const { data } = await supabase.from("courses").select("*");
       setCourses(data || []);
+
+      // Load instructor names
+      if (data && data.length > 0) {
+        const instructorIds = [...new Set(data.map(c => c.instructor_id))];
+        const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", instructorIds);
+        const map: Record<string, string> = {};
+        profiles?.forEach(p => { map[p.user_id] = p.full_name; });
+        setInstructors(map);
+      }
+
       if (user) {
-        const { data: enr } = await supabase.from("enrollments").select("course_id").eq("student_id", user.id);
-        setEnrollments(enr?.map(e => e.course_id) || []);
+        const { data: enr } = await supabase.from("enrollments").select("*").eq("student_id", user.id);
+        const enrMap: Record<string, any> = {};
+        enr?.forEach(e => { enrMap[e.course_id] = e; });
+        setEnrollments(enrMap);
       }
       setLoading(false);
     };
@@ -32,11 +46,11 @@ export default function Courses() {
 
   const handleEnroll = async (courseId: string) => {
     if (!user) return;
-    const { error } = await supabase.from("enrollments").insert({ course_id: courseId, student_id: user.id });
+    const { error, data } = await supabase.from("enrollments").insert({ course_id: courseId, student_id: user.id }).select().single();
     if (error) {
       toast.error("Failed to enroll");
     } else {
-      setEnrollments(prev => [...prev, courseId]);
+      setEnrollments(prev => ({ ...prev, [courseId]: data }));
       toast.success("Enrolled successfully!");
     }
   };
@@ -46,6 +60,10 @@ export default function Courses() {
     intermediate: "bg-warning/10 text-warning",
     advanced: "bg-destructive/10 text-destructive",
   };
+
+  // Sample lesson counts (in a real app this would come from DB)
+  const lessonCounts: Record<string, number> = {};
+  courses.forEach((c, i) => { lessonCounts[c.id] = [40, 35, 30, 28, 25, 32][i % 6]; });
 
   return (
     <DashboardLayout>
@@ -73,35 +91,56 @@ export default function Courses() {
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course) => (
-              <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="h-2 gradient-primary" />
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="font-display text-lg">{course.title}</CardTitle>
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${difficultyColors[course.difficulty_level] || ""}`}>
-                      {course.difficulty_level}
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground line-clamp-3">{course.description || "No description"}</p>
-                  <p className="text-xs text-muted-foreground">Course</p>
-                  {!isInstructor && (
-                    enrollments.includes(course.id) ? (
-                      <Badge variant="secondary">Enrolled</Badge>
-                    ) : (
-                      <Button size="sm" onClick={() => handleEnroll(course.id)}>Enroll</Button>
-                    )
-                  )}
-                  {isInstructor && user?.id === course.instructor_id && (
-                    <Button size="sm" variant="outline" onClick={() => navigate(`/courses/${course.id}`)}>
-                      Manage
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+            {courses.map((course) => {
+              const enrollment = enrollments[course.id];
+              const progress = enrollment?.progress || 0;
+              return (
+                <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-all hover:-translate-y-0.5 group">
+                  <div className="h-2 gradient-primary" />
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="font-display text-lg leading-tight">{course.title}</CardTitle>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize shrink-0 ml-2 ${difficultyColors[course.difficulty_level] || ""}`}>
+                        {course.difficulty_level}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground line-clamp-2">{course.description || "No description"}</p>
+
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        {instructors[course.instructor_id] || "Instructor"}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Layers className="h-3 w-3" />
+                        {lessonCounts[course.id] || 20} Lessons
+                      </span>
+                    </div>
+
+                    {!isInstructor && enrollment ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Progress</span>
+                          <span className="font-medium text-foreground">{progress}%</span>
+                        </div>
+                        <Progress value={progress} className="h-2" />
+                        <Button size="sm" variant="outline" className="w-full mt-1">
+                          Continue Learning
+                        </Button>
+                      </div>
+                    ) : !isInstructor ? (
+                      <Button size="sm" className="w-full" onClick={() => handleEnroll(course.id)}>Enroll Now</Button>
+                    ) : user?.id === course.instructor_id ? (
+                      <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/courses/${course.id}`)}>
+                        Manage
+                      </Button>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
