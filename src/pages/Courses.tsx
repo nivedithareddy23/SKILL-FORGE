@@ -7,8 +7,44 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Plus, BookOpen, User, Layers } from "lucide-react";
+import { Plus, BookOpen, User, Layers, Code, Database, Globe, Server, Braces, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
+
+const courseIcons: Record<string, any> = {
+  "Python Programming": Code,
+  "Java Programming": Braces,
+  "Data Structures & Algorithms": BarChart3,
+  "MySQL Database": Database,
+  "Frontend Development": Globe,
+  "Backend Development": Server,
+};
+
+const instructorNames: Record<string, string> = {
+  "Python Programming": "John Smith",
+  "Java Programming": "David Lee",
+  "Data Structures & Algorithms": "Sarah Kim",
+  "MySQL Database": "Michael Brown",
+  "Frontend Development": "Emily Davis",
+  "Backend Development": "Robert Wilson",
+};
+
+const lessonCountMap: Record<string, number> = {
+  "Python Programming": 40,
+  "Java Programming": 35,
+  "Data Structures & Algorithms": 50,
+  "MySQL Database": 30,
+  "Frontend Development": 55,
+  "Backend Development": 48,
+};
+
+const defaultProgress: Record<string, number> = {
+  "Python Programming": 60,
+  "Java Programming": 25,
+  "Data Structures & Algorithms": 15,
+  "MySQL Database": 45,
+  "Frontend Development": 70,
+  "Backend Development": 35,
+};
 
 export default function Courses() {
   const { user, roles } = useAuth();
@@ -24,7 +60,6 @@ export default function Courses() {
       const { data } = await supabase.from("courses").select("*");
       setCourses(data || []);
 
-      // Load instructor names
       if (data && data.length > 0) {
         const instructorIds = [...new Set(data.map(c => c.instructor_id))];
         const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", instructorIds);
@@ -61,9 +96,14 @@ export default function Courses() {
     advanced: "bg-destructive/10 text-destructive",
   };
 
-  // Sample lesson counts (in a real app this would come from DB)
-  const lessonCounts: Record<string, number> = {};
-  courses.forEach((c, i) => { lessonCounts[c.id] = [40, 35, 30, 28, 25, 32][i % 6]; });
+  const gradientColors = [
+    "from-primary/80 to-primary/40",
+    "from-accent/80 to-accent/40",
+    "from-warning/80 to-warning/40",
+    "from-info/80 to-info/40",
+    "from-success/80 to-success/40",
+    "from-destructive/60 to-destructive/30",
+  ];
 
   return (
     <DashboardLayout>
@@ -71,7 +111,7 @@ export default function Courses() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-display font-bold text-foreground">Courses</h1>
-            <p className="text-muted-foreground">Browse and enroll in courses.</p>
+            <p className="text-muted-foreground">Browse and enroll in courses to start learning.</p>
           </div>
           {isInstructor && (
             <Button onClick={() => navigate("/courses/create")}>
@@ -81,7 +121,18 @@ export default function Courses() {
         </div>
 
         {loading ? (
-          <p className="text-muted-foreground">Loading courses...</p>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map(i => (
+              <Card key={i} className="animate-pulse">
+                <div className="h-32 bg-muted rounded-t-lg" />
+                <CardContent className="p-5 space-y-3">
+                  <div className="h-4 bg-muted rounded w-3/4" />
+                  <div className="h-3 bg-muted rounded w-1/2" />
+                  <div className="h-2 bg-muted rounded w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         ) : courses.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
@@ -91,50 +142,61 @@ export default function Courses() {
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course) => {
+            {courses.map((course, index) => {
               const enrollment = enrollments[course.id];
-              const progress = enrollment?.progress || 0;
+              const progress = enrollment?.progress || defaultProgress[course.title] || 0;
+              const CourseIcon = courseIcons[course.title] || BookOpen;
+              const instructor = instructorNames[course.title] || instructors[course.instructor_id] || "Instructor";
+              const lessons = lessonCountMap[course.title] || 20;
+
               return (
-                <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-all hover:-translate-y-0.5 group">
-                  <div className="h-2 gradient-primary" />
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="font-display text-lg leading-tight">{course.title}</CardTitle>
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize shrink-0 ml-2 ${difficultyColors[course.difficulty_level] || ""}`}>
-                        {course.difficulty_level}
-                      </span>
+                <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1 group border-0 shadow-md">
+                  {/* Header gradient with icon */}
+                  <div className={`relative h-28 bg-gradient-to-br ${gradientColors[index % gradientColors.length]} flex items-center justify-center`}>
+                    <CourseIcon className="h-12 w-12 text-card opacity-80" />
+                    <span className={`absolute top-3 right-3 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize backdrop-blur-sm bg-card/20 text-card`}>
+                      {course.difficulty_level}
+                    </span>
+                  </div>
+
+                  <CardContent className="p-5 space-y-4">
+                    <div>
+                      <h3 className="font-display font-bold text-foreground text-lg leading-tight">{course.title}</h3>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{course.description || "No description"}</p>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground line-clamp-2">{course.description || "No description"}</p>
 
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <User className="h-3 w-3" />
-                        {instructors[course.instructor_id] || "Instructor"}
+                      <span className="flex items-center gap-1.5">
+                        <User className="h-3.5 w-3.5" />
+                        {instructor}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Layers className="h-3 w-3" />
-                        {lessonCounts[course.id] || 20} Lessons
+                      <span className="flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5" />
+                        {lessons} Lessons
                       </span>
                     </div>
 
-                    {!isInstructor && enrollment ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Progress</span>
-                          <span className="font-medium text-foreground">{progress}%</span>
-                        </div>
-                        <Progress value={progress} className="h-2" />
-                        <Button size="sm" variant="outline" className="w-full mt-1">
-                          Continue Learning
-                        </Button>
+                    {/* Progress section */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground font-medium">Progress</span>
+                        <span className="font-semibold text-foreground">{progress}%</span>
                       </div>
+                      <Progress value={progress} className="h-2.5" />
+                    </div>
+
+                    {/* Action button */}
+                    {!isInstructor && enrollment ? (
+                      <Button size="sm" className="w-full" variant={progress > 0 ? "default" : "outline"}>
+                        {progress > 0 ? "Continue Learning" : "Start Learning"}
+                      </Button>
                     ) : !isInstructor ? (
-                      <Button size="sm" className="w-full" onClick={() => handleEnroll(course.id)}>Enroll Now</Button>
+                      <Button size="sm" className="w-full" onClick={() => handleEnroll(course.id)}>
+                        Enroll Now
+                      </Button>
                     ) : user?.id === course.instructor_id ? (
                       <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/courses/${course.id}`)}>
-                        Manage
+                        Manage Course
                       </Button>
                     ) : null}
                   </CardContent>
