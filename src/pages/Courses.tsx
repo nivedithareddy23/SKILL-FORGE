@@ -19,7 +19,7 @@ export default function Courses() {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.from("courses").select("*, profiles!courses_instructor_id_fkey(full_name)");
+      const { data } = await supabase.from("courses").select("*");
       setCourses(data || []);
       if (user) {
         const { data: enr } = await supabase.from("enrollments").select("course_id").eq("student_id", user.id);
