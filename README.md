@@ -1,73 +1,40 @@
-# Welcome to your Lovable project
+SkillForge – AI-Driven Adaptive Learning & Exam Generator
 
-## Project info
+SkillForge is an AI-powered e-learning platform that personalizes learning paths and auto-generates quizzes based on student performance.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Features
 
-## How can I edit this code?
+User Roles: Student, Instructor, Admin
 
-There are several ways of editing your application.
+Authentication: JWT-based login & role-based dashboards
 
-**Use Lovable**
+Course Management: Add/edit/delete courses, topics, materials (videos, PDFs, links)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Adaptive Learning: Personalized content suggestions, difficulty-adjusted quizzes
 
-Changes made via Lovable will be committed automatically to this repo.
+AI-Generated Quizzes: GPT-powered question creation (MCQ & short answer)
 
-**Use your preferred IDE**
+Analytics: Topic-wise performance, skill progression, instructor insights
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Tech Stack
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Frontend: Angular 19, Angular Material, Chart.js
 
-Follow these steps:
+Backend: Node.js (Express), JWT Auth, REST APIs
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Database: MySQL with Sequelize ORM
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+AI: OpenAI GPT API
 
-# Step 3: Install the necessary dependencies.
-npm i
+Database Schema (Sample)
+CREATE TABLE users(id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100), email VARCHAR(100), password VARCHAR(255), role ENUM('STUDENT','INSTRUCTOR','ADMIN'));
+CREATE TABLE courses(id BIGINT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(100), instructor_id BIGINT, difficulty_level ENUM('BEGINNER','INTERMEDIATE','ADVANCED'), FOREIGN KEY(instructor_id) REFERENCES users(id));
+CREATE TABLE quizzes(id BIGINT AUTO_INCREMENT PRIMARY KEY, course_id BIGINT, title VARCHAR(100), generated_by_ai BOOLEAN, FOREIGN KEY(course_id) REFERENCES courses(id));
+CREATE TABLE questions(id BIGINT AUTO_INCREMENT PRIMARY KEY, quiz_id BIGINT, question_text TEXT, options JSON, correct_answer VARCHAR(100), FOREIGN KEY(quiz_id) REFERENCES quizzes(id));
+CREATE TABLE quiz_attempts(id BIGINT AUTO_INCREMENT PRIMARY KEY, quiz_id BIGINT, student_id BIGINT, score DECIMAL(5,2), attempt_time DATETIME, FOREIGN KEY(quiz_id) REFERENCES quizzes(id), FOREIGN KEY(student_id) REFERENCES users(id));
+Setup
+git clone <repo-url>
+cd backend && npm install && npm start
+cd frontend && npm install && ng serve
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+App runs at: http://localhost:4200
