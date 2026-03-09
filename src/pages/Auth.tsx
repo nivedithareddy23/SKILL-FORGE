@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { GraduationCap, ArrowRight } from "lucide-react";
 
@@ -13,6 +14,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState<string>("student");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -35,7 +37,10 @@ export default function Auth() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin },
+          options: {
+            data: { full_name: fullName, role },
+            emailRedirectTo: window.location.origin,
+          },
         });
         if (error) throw error;
         toast.success("Account created! Check your email to verify.");
@@ -70,16 +75,31 @@ export default function Auth() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="John Doe"
-                    required={!isLogin}
-                  />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="John Doe"
+                      required={!isLogin}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Select value={role} onValueChange={setRole}>
+                      <SelectTrigger id="role">
+                        <SelectValue placeholder="Select your role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="student">Student</SelectItem>
+                        <SelectItem value="instructor">Instructor</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
