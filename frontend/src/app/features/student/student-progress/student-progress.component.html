@@ -1,0 +1,146 @@
+<div class="dashboard">
+    <aside class="sidebar">
+        <div class="sidebar-brand"><div class="logo-mark">SF</div><span>SkillForge</span></div>
+        <nav class="sidebar-nav">
+            <a class="nav-item" (click)="navigate('/dashboard/student')"><app-icon name="home" [size]="16"></app-icon> Learning Home</a>
+            <a class="nav-item" (click)="navigate('/student/courses')"><app-icon name="book" [size]="16"></app-icon> My Courses</a>
+            <a class="nav-item" (click)="navigate('/student/quizzes')"><app-icon name="clipboard" [size]="16"></app-icon> Quizzes</a>
+            <a class="nav-item active"><app-icon name="bar_chart" [size]="16"></app-icon> Progress</a>
+            <a class="nav-item" (click)="navigate('/student/ai-tutor')"><app-icon name="bot" [size]="16"></app-icon> AI Tutor</a>
+        </nav>
+        <button class="logout-btn" (click)="logout()">↩ Sign out</button>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>My Progress</h1>
+            <p>Track your learning journey</p>
+        </div>
+
+        @if (isLoading()) {
+        <div class="loading-state"><div class="spinner"></div><p>Loading your progress...</p></div>
+        }
+        @if (errorMessage()) { <div class="alert-error">⚠ {{ errorMessage() }}</div> }
+
+        @if (!isLoading() && progress()) {
+
+        <!-- KPI Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon"><app-icon name="clipboard" [size]="28"></app-icon></div>
+                <div>
+                    <div class="stat-value">{{ progress()!.totalAttempts }}</div>
+                    <div class="stat-label">Total Attempts</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><app-icon name="target" [size]="28"></app-icon></div>
+                <div>
+                    <div class="stat-value">{{ progress()!.avgScore !== null ? progress()!.avgScore + '%' : '—' }}</div>
+                    <div class="stat-label">Avg. Score</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><app-icon name="check" [size]="28"></app-icon></div>
+                <div>
+                    <div class="stat-value">{{ progress()!.passRate !== null ? progress()!.passRate + '%' : '—' }}</div>
+                    <div class="stat-label">Pass Rate</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><app-icon name="book" [size]="28"></app-icon></div>
+                <div>
+                    <div class="stat-value">{{ progress()!.byCourse.length }}</div>
+                    <div class="stat-label">Courses Tried</div>
+                </div>
+            </div>
+        </div>
+
+        @if (progress()!.totalAttempts === 0) {
+        <div class="empty-state">
+            <div class="empty-icon"><app-icon name="bar_chart" [size]="48"></app-icon></div>
+            <p>No quiz attempts yet. Take some quizzes to see your progress charts!</p>
+        </div>
+        }
+
+        @if (progress()!.totalAttempts > 0) {
+        <!-- Charts Row 1: Bar + Doughnut -->
+        <div class="charts-row">
+
+            <!-- Bar Chart — Score per Course -->
+            <div class="chart-card wide">
+                <div class="chart-header">
+                    <div>
+                        <h3>Performance by Course</h3>
+                        <p>Average score across each course</p>
+                    </div>
+                    <span class="chart-badge bar">Bar</span>
+                </div>
+                <div class="chart-wrap">
+                    <canvas #barCanvas></canvas>
+                </div>
+            </div>
+
+            <!-- Doughnut Chart — Pass/Fail -->
+            <div class="chart-card narrow">
+                <div class="chart-header">
+                    <div>
+                        <h3>Pass / Fail Ratio</h3>
+                        <p>Overall quiz outcomes</p>
+                    </div>
+                    <span class="chart-badge doughnut">Donut</span>
+                </div>
+                <div class="chart-wrap doughnut-wrap">
+                    <canvas #doughnutCanvas></canvas>
+                </div>
+                <!-- Center label -->
+                <div class="doughnut-center">
+                    <div class="dc-val">{{ progress()!.passRate !== null ? progress()!.passRate + '%' : '—' }}</div>
+                    <div class="dc-label">Pass Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2: Line Chart -->
+        <div class="chart-card full">
+            <div class="chart-header">
+                <div>
+                    <h3>Score Trend Over Time</h3>
+                    <p>How your scores have changed across attempts</p>
+                </div>
+                <span class="chart-badge line">Line</span>
+            </div>
+            <div class="chart-wrap tall">
+                <canvas #lineCanvas></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Attempts Table -->
+        <div class="card">
+            <div class="card-head">
+                <h3>Recent Attempts</h3>
+            </div>
+            <div class="attempts-list">
+                @for (t of progress()!.timeline; track t.attemptTime) {
+                <div class="attempt-row">
+                    <div class="attempt-score" [class]="getScoreClass(t.score)">{{ t.score }}%</div>
+                    <div class="attempt-info">
+                        <div class="attempt-title">
+                            {{ t.quizTitle }}
+                            @if (t.attemptNumber > 1) {
+                            <span class="retake-badge">Retake #{{ t.attemptNumber }}</span>
+                            }
+                        </div>
+                        <div class="attempt-meta">{{ t.course }} · {{ t.attemptTime | date:'MMM d, y · h:mm a' }}</div>
+                    </div>
+                    <span class="pass-chip" [class.pass]="t.score >= 60" [class.fail]="t.score < 60">
+                  {{ t.score >= 60 ? 'Pass' : 'Fail' }}
+                </span>
+                </div>
+                }
+            </div>
+        </div>
+        }
+        }
+    </main>
+</div>

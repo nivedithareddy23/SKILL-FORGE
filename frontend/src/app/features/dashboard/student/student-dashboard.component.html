@@ -1,0 +1,117 @@
+<div class="dashboard">
+  <aside class="sidebar">
+    <div class="sidebar-brand"><div class="logo-mark">SF</div><span>SkillForge</span></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item active"><app-icon name="home" [size]="16"></app-icon> Learning Home</a>
+      <a class="nav-item" (click)="navigate('/student/courses')"><app-icon name="book" [size]="16"></app-icon> My Courses</a>
+      <a class="nav-item" (click)="navigate('/student/quizzes')"><app-icon name="clipboard" [size]="16"></app-icon> Quizzes</a>
+      <a class="nav-item" (click)="navigate('/student/progress')"><app-icon name="bar_chart" [size]="16"></app-icon> Progress</a>
+      <a class="nav-item" (click)="navigate('/student/ai-tutor')"><app-icon name="bot" [size]="16"></app-icon> AI Tutor</a>
+    </nav>
+    <button class="logout-btn" (click)="logout()">↩ Sign out</button>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h1>{{ greeting() }}, <em>{{ firstName() }}</em> 👋</h1>
+        @if (dashboard()) {
+        <p>You have <strong>{{ dashboard()!.upcomingQuizzes.length }}</strong> quizzes available to take.</p>
+        } @else { <p>Loading your dashboard...</p> }
+      </div>
+      <div class="profile-wrap">
+        <button class="avatar-circle" (click)="toggleProfile()">{{ firstName()[0] | uppercase }}</button>
+        @if (showProfile()) {
+        <div class="profile-dropdown">
+          <div class="pd-header">
+            <div class="pd-avatar">{{ firstName()[0] | uppercase }}</div>
+            <div class="pd-info">
+              <div class="pd-name">{{ user()?.name }}</div>
+              <div class="pd-email">{{ user()?.email }}</div>
+              <span class="pd-role-badge">Student</span>
+            </div>
+          </div>
+          <div class="pd-stats">
+            <div class="pd-stat"><div class="pd-stat-val">{{ dashboard()?.totalAttempts ?? 0 }}</div><div class="pd-stat-label">Quizzes Done</div></div>
+            <div class="pd-stat"><div class="pd-stat-val">{{ dashboard()?.avgScore !== null ? (dashboard()?.avgScore) + '%' : '—' }}</div><div class="pd-stat-label">Avg Score</div></div>
+            <div class="pd-stat"><div class="pd-stat-val">{{ dashboard()?.totalCourses ?? 0 }}</div><div class="pd-stat-label">Courses</div></div>
+          </div>
+          <div class="pd-menu">
+            <button class="pd-item" (click)="openProfileDrawer()">
+              <app-icon name="user" [size]="15"></app-icon><span>My Profile</span><span class="pd-arrow">›</span>
+            </button>
+            <button class="pd-item" (click)="navigate('/student/courses')">
+              <app-icon name="book" [size]="15"></app-icon><span>My Courses</span><span class="pd-arrow">›</span>
+            </button>
+            <button class="pd-item" (click)="navigate('/student/progress')">
+              <app-icon name="bar_chart" [size]="15"></app-icon><span>My Progress</span><span class="pd-arrow">›</span>
+            </button>
+            <button class="pd-item" (click)="navigate('/student/quizzes')">
+              <app-icon name="clipboard" [size]="15"></app-icon><span>My Quizzes</span><span class="pd-arrow">›</span>
+            </button>
+          </div>
+          <div class="pd-footer">
+            <span class="pd-since">Member since {{ memberSince() }}</span>
+            <button class="pd-logout" (click)="logout()">↩ Sign out</button>
+          </div>
+        </div>
+        }
+      </div>
+    </header>
+
+    @if (isLoading()) { <div class="loading-state"><div class="spinner"></div><p>Loading your data...</p></div> }
+
+    @if (!isLoading() && dashboard()) {
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-icon"><app-icon name="book" [size]="28"></app-icon></div><div><div class="stat-value">{{ dashboard()!.totalCourses }}</div><div class="stat-label">Courses Available</div></div></div>
+      <div class="stat-card"><div class="stat-icon"><app-icon name="check" [size]="28"></app-icon></div><div><div class="stat-value">{{ dashboard()!.totalAttempts }}</div><div class="stat-label">Quizzes Completed</div></div></div>
+      <div class="stat-card"><div class="stat-icon"><app-icon name="target" [size]="28"></app-icon></div><div><div class="stat-value">{{ dashboard()!.avgScore !== null ? dashboard()!.avgScore + '%' : '—' }}</div><div class="stat-label">Avg. Score</div></div></div>
+      <div class="stat-card"><div class="stat-icon"><app-icon name="clipboard" [size]="28"></app-icon></div><div><div class="stat-value">{{ dashboard()!.upcomingQuizzes.length }}</div><div class="stat-label">Quizzes Pending</div></div></div>
+    </div>
+
+    <div class="two-col">
+      <section class="card">
+        <div class="card-head"><h2>Available Courses</h2><button class="btn-link" (click)="navigate('/student/courses')">View all →</button></div>
+        @if (dashboard()!.recentCourses.length === 0) {
+        <div class="empty-mini"><p>No courses available yet.</p></div>
+        } @else {
+        <div class="course-list">
+          @for (c of dashboard()!.recentCourses; track c.id) {
+          <div class="course-row" (click)="navigate('/student/courses')">
+            <div class="course-icon-sm"><app-icon name="book" [size]="20"></app-icon></div>
+            <div class="course-info"><div class="course-name">{{ c.title }}</div><div class="course-meta">{{ c.quizCount }} quizzes</div></div>
+            <span class="diff-pill" [class]="getDifficultyClass(c.difficulty)">{{ c.difficulty }}</span>
+          </div>
+          }
+        </div>
+        }
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Pending Quizzes</h2><button class="btn-link" (click)="navigate('/student/quizzes')">View all →</button></div>
+        @if (dashboard()!.upcomingQuizzes.length === 0) {
+        <div class="empty-mini"><p>🎉 You've attempted all quizzes!</p></div>
+        } @else {
+        <div class="quiz-list">
+          @for (q of dashboard()!.upcomingQuizzes; track q.id) {
+          <div class="quiz-row" (click)="navigate('/student/quizzes')">
+            <div class="quiz-icon"><app-icon name="clipboard" [size]="20"></app-icon></div>
+            <div class="quiz-info"><div class="quiz-name">{{ q.title }}</div><div class="quiz-meta">{{ q.course }} · {{ q.timeLimit }} min</div></div>
+            <span class="diff-pill" [class]="getDifficultyClass(q.difficulty)">{{ q.difficulty }}</span>
+          </div>
+          }
+        </div>
+        }
+      </section>
+    </div>
+    }
+
+    @if (!isLoading() && !dashboard()) {
+    <div class="empty-state"><div class="empty-icon"><app-icon name="book" [size]="48"></app-icon></div><p>Could not load dashboard. Make sure the backend is running.</p></div>
+    }
+  </main>
+</div>
+
+@if (showProfileDrawer()) {
+<app-student-profile (closed)="showProfileDrawer.set(false)" />
+}

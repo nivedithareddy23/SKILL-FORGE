@@ -1,0 +1,169 @@
+<div class="dashboard">
+    <aside class="sidebar">
+        <div class="sidebar-brand"><div class="logo-mark">SF</div><span>SkillForge</span></div>
+        <nav class="sidebar-nav">
+            <a class="nav-item" (click)="navigate('/dashboard/student')"><app-icon name="home" [size]="16"></app-icon> Learning Home</a>
+            <a class="nav-item active"><app-icon name="book" [size]="16"></app-icon> My Courses</a>
+            <a class="nav-item" (click)="navigate('/student/quizzes')"><app-icon name="clipboard" [size]="16"></app-icon> Quizzes</a>
+            <a class="nav-item" (click)="navigate('/student/progress')"><app-icon name="bar_chart" [size]="16"></app-icon> Progress</a>
+            <a class="nav-item" (click)="navigate('/student/ai-tutor')"><app-icon name="bot" [size]="16"></app-icon> AI Tutor</a>
+        </nav>
+        <button class="logout-btn" (click)="logout()">↩ Sign out</button>
+    </aside>
+
+    <main class="main">
+        <div class="topbar"><div><h1>My Courses</h1><p>All available published courses</p></div></div>
+        @if (isLoading()) { <div class="loading-state"><div class="spinner"></div><p>Loading courses...</p></div> }
+        @if (errorMessage()) { <div class="alert-error">⚠ {{ errorMessage() }}</div> }
+        @if (!isLoading() && courses().length === 0) {
+        <div class="empty-state"><div class="empty-icon"><app-icon name="book" [size]="48"></app-icon></div><p>No courses available yet.</p></div>
+        }
+        @if (!isLoading() && courses().length > 0) {
+        <div class="course-grid">
+            @for (c of courses(); track c.id) {
+            <div class="course-card" [class.started]="isStarted(c.id)">
+                <div class="card-top">
+                    <span class="diff-pill" [class]="getDifficultyClass(c.difficulty)">{{ c.difficulty }}</span>
+                    @if (isStarted(c.id)) { <span class="in-progress-badge">▶ In Progress</span> }
+                </div>
+                <div class="card-icon"><app-icon name="book" [size]="36"></app-icon></div>
+                <h3 class="course-title">{{ c.title }}</h3>
+                <p class="course-desc">{{ c.description || 'No description.' }}</p>
+                <div class="course-meta">
+                    <span><app-icon name="user" [size]="13"></app-icon> {{ c.instructor }}</span>
+                    <span><app-icon name="clipboard" [size]="13"></app-icon> {{ c.quizCount }} quizzes</span>
+                </div>
+                @if (isStarted(c.id)) {
+                <div class="progress-row">
+                    <span class="progress-label">{{ c.attempted }}/{{ c.quizCount }} quizzes attempted</span>
+                    <div class="progress-bar"><div class="progress-fill" [style.width.%]="c.quizCount > 0 ? (c.attempted/c.quizCount)*100 : 0"></div></div>
+                </div>
+                }
+                <div class="card-actions">
+                    @if (!isStarted(c.id)) {
+                    <button class="btn-start" (click)="startCourse(c)"><app-icon name="play" [size]="14"></app-icon> Start Course</button>
+                    } @else {
+                    <button class="btn-resume" (click)="openCourse(c.id)"><app-icon name="play" [size]="14"></app-icon> Resume Course</button>
+                    <button class="btn-quiz" (click)="navigate('/student/quizzes')"><app-icon name="clipboard" [size]="14"></app-icon> Quizzes</button>
+                    }
+                </div>
+            </div>
+            }
+        </div>
+        }
+    </main>
+</div>
+
+@if (viewingCourse()) {
+<div class="viewer-overlay" (click)="closeViewer()">
+    <div class="viewer-panel" (click)="$event.stopPropagation()">
+        <div class="viewer-header">
+            <div class="header-left">
+                <div class="course-badge"><app-icon name="book" [size]="24"></app-icon></div>
+                <div>
+                    <h2>{{ viewingCourse()!.title }}</h2>
+                    <div class="header-meta">
+                        <span>{{ viewingCourse()!.instructor.name }}</span>
+                        <span class="sep">·</span>
+                        <span class="diff-chip">{{ viewingCourse()!.difficulty_level }}</span>
+                        <span class="sep">·</span>
+                        <span>{{ contents().length }} lessons</span>
+                    </div>
+                </div>
+            </div>
+            <button class="close-btn" (click)="closeViewer()">✕</button>
+        </div>
+        <div class="viewer-progress-bar"><div class="viewer-progress-fill" [style.width.%]="getViewerProgress()"></div></div>
+
+        @if (isLoadingContent()) { <div class="viewer-loading"><div class="spinner"></div><p>Loading content...</p></div> }
+        @if (!isLoadingContent() && contents().length === 0) {
+        <div class="viewer-empty">
+            <div class="empty-icon"><app-icon name="folder" [size]="48"></app-icon></div>
+            <p>No content added yet.</p>
+            <p class="sub">Your instructor hasn't uploaded any lessons yet. Check back soon!</p>
+        </div>
+        }
+
+        @if (!isLoadingContent() && contents().length > 0) {
+        <div class="viewer-body">
+            <div class="content-sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-title">Course Content</div>
+                    <div class="content-count">{{ contents().length }} lessons total</div>
+                </div>
+                @if (byType('VIDEO').length > 0) {
+                <div class="section-group">
+                    <span class="section-label"><app-icon name="play" [size]="13"></app-icon> Videos</span>
+                    @for (item of byType('VIDEO'); track item.id) {
+                    <div class="content-item" [class.active]="activeContent()?.id === item.id" (click)="selectContent(item)">
+                        <span class="item-icon"><app-icon name="play" [size]="14"></app-icon></span>
+                        <div class="item-info"><div class="item-title">{{ item.title }}</div><div class="item-type">Video lesson</div></div>
+                    </div>
+                    }
+                </div>
+                }
+                @if (byType('PDF').length > 0) {
+                <div class="section-group">
+                    <span class="section-label"><app-icon name="file_text" [size]="13"></app-icon> PDFs</span>
+                    @for (item of byType('PDF'); track item.id) {
+                    <div class="content-item" [class.active]="activeContent()?.id === item.id" (click)="selectContent(item)">
+                        <span class="item-icon"><app-icon name="file_text" [size]="14"></app-icon></span>
+                        <div class="item-info"><div class="item-title">{{ item.title }}</div><div class="item-type">PDF document</div></div>
+                    </div>
+                    }
+                </div>
+                }
+                @if (byType('LINK').length > 0) {
+                <div class="section-group">
+                    <span class="section-label"><app-icon name="link" [size]="13"></app-icon> Links</span>
+                    @for (item of byType('LINK'); track item.id) {
+                    <div class="content-item" [class.active]="activeContent()?.id === item.id" (click)="selectContent(item)">
+                        <span class="item-icon"><app-icon name="link" [size]="14"></app-icon></span>
+                        <div class="item-info"><div class="item-title">{{ item.title }}</div><div class="item-type">External resource</div></div>
+                    </div>
+                    }
+                </div>
+                }
+            </div>
+
+            <div class="content-main">
+                @if (activeContent()) {
+                <div class="content-viewer">
+                    <div class="content-topbar">
+                        <div class="content-breadcrumb">{{ viewingCourse()!.title }} <span> › </span><span class="breadcrumb-active">{{ activeContent()!.title }}</span></div>
+                        <span class="content-type-badge" [class]="activeContent()!.type.toLowerCase()">{{ activeContent()!.type }}</span>
+                    </div>
+                    <div class="content-body">
+                        <h3 class="content-title">{{ activeContent()!.title }}</h3>
+                        @if (activeContent()!.description) { <p class="content-desc">{{ activeContent()!.description }}</p> }
+                        @if (isVideo(activeContent()!)) {
+                        <div class="video-container"><video controls [src]="getFileUrl(activeContent()!.url)" class="video-player" (ended)="onContentComplete()"></video></div>
+                        }
+                        @if (isPdf(activeContent()!)) {
+                        <div class="pdf-container"><iframe [src]="getFileUrl(activeContent()!.url)" class="pdf-viewer" title="pdf"></iframe></div>
+                        <div class="pdf-actions"><a [href]="getFileUrl(activeContent()!.url)" target="_blank" class="btn-open-pdf">↗ Open in new tab</a></div>
+                        }
+                        @if (isLink(activeContent()!)) {
+                        <div class="link-container">
+                            <div class="link-hero">
+                                <span class="link-icon-big"><app-icon name="link" [size]="48"></app-icon></span>
+                                <p class="link-title">{{ activeContent()!.title }}</p>
+                                <p class="link-url-display">{{ activeContent()!.url }}</p>
+                                <a [href]="activeContent()!.url" target="_blank" class="btn-open-link">Open Resource →</a>
+                            </div>
+                        </div>
+                        }
+                    </div>
+                    <div class="content-nav">
+                        <button class="nav-btn" [disabled]="!hasPrev()" (click)="prevContent()">← Previous</button>
+                        <span class="nav-position">{{ currentIndex() + 1 }} / {{ contents().length }}</span>
+                        <button class="nav-btn primary" [disabled]="!hasNext()" (click)="nextContent()">Next →</button>
+                    </div>
+                </div>
+                }
+            </div>
+        </div>
+        }
+    </div>
+</div>
+}
